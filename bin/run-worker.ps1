@@ -53,6 +53,32 @@ try {
     }
 } catch { }
 
+# Seal the window itself.
+#
+# The input lock above only covers the client area; the title bar is managed by the
+# window manager. A window that says "do not close me" but closes on one stray click
+# is a trap, so the Close item is removed from the window's system menu - the X button
+# and Alt+F4 (which posts the same SC_CLOSE) both stop working.
+# Task Manager stays as the escape hatch if a job ever really hangs; that is
+# deliberate, and it is also why minimize/maximize/move are left alone.
+try {
+    Add-Type -Namespace DshConsoleWindow -Name Api -MemberDefinition @'
+[DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+[DllImport("user32.dll")] public static extern IntPtr GetSystemMenu(IntPtr hWnd, bool bRevert);
+[DllImport("user32.dll")] public static extern bool DeleteMenu(IntPtr hMenu, uint uPosition, uint uFlags);
+[DllImport("user32.dll")] public static extern bool DrawMenuBar(IntPtr hWnd);
+'@
+    $hwnd = [DshConsoleWindow.Api]::GetConsoleWindow()
+    if ($hwnd -ne [IntPtr]::Zero) {
+        $sysMenu = [DshConsoleWindow.Api]::GetSystemMenu($hwnd, $false)
+        if ($sysMenu -ne [IntPtr]::Zero) {
+            # SC_CLOSE = 0xF060, MF_BYCOMMAND = 0x00000000
+            [void][DshConsoleWindow.Api]::DeleteMenu($sysMenu, 0xF060, 0)
+            [void][DshConsoleWindow.Api]::DrawMenuBar($hwnd)
+        }
+    }
+} catch { }
+
 # This window is the only thing the user sees while the icon is being changed, so
 # say what is going on and warn that closing it kills the job. Text comes from
 # messages.txt via console-messages.ps1, with ASCII fallbacks if that file is gone.

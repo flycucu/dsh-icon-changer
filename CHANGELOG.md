@@ -3,13 +3,16 @@
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [0.3.1] - 2026-10-05
 
 ### Changed
 
 - worker 控制台**输入模式整体清零**（实测 `0x01F7 → 0x0000`）：不只是关掉 QuickEdit，鼠标点击/拖选、键盘、
   `Ctrl+C`（`ENABLE_PROCESSED_INPUT`）全部不再交给进程，误点误按都不会打断改写；
   只影响输入缓冲，控制台输出与状态写入不受影响。
+- worker 窗口**封掉关闭入口**：`GetSystemMenu` + `DeleteMenu(SC_CLOSE)`（实测菜单项 `10 → 9`、
+  `GetMenuState(SC_CLOSE)` 返回"不存在"），`×` 与 `Alt+F4` 失效；最小化/最大化/移动保留。
+  需要中止时请用任务管理器结束该 `powershell.exe`。
 
 ## [0.3.0] - 2026-10-05
 
@@ -70,4 +73,5 @@
 该版本的 exe 校验、worker 存活、状态文件读写三处关键路径存在缺陷（详见 0.3.0 的 Fixed），
 因此**核心功能实际不可用**，仅作为历史记录保留。
 
+[0.3.1]: https://github.com/flycucu/dsh-icon-changer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/flycucu/dsh-icon-changer/releases/tag/v0.3.0
