@@ -1,4 +1,10 @@
+**【本插件代码由 DeepSeek Harness 生成】**
+
 # dsh-icon-changer
+
+[![check](https://github.com/flycucu/dsh-icon-changer/actions/workflows/check.yml/badge.svg)](https://github.com/flycucu/dsh-icon-changer/actions/workflows/check.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[更新日志](CHANGELOG.md)
 
 DeepSeek Harness 桌面端的**应用图标更换器**插件：把官方 exe 内嵌的图标换成你自己的 `.ico`，也能一键回退成官方默认。
 
