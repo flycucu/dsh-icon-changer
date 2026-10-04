@@ -16,6 +16,7 @@
     "assets",
     "cordis.patch.yml",
     "README.md",
+    "CHANGELOG.md",
     "THIRD_PARTY_NOTICES.md"
   ],
   "keywords": [
