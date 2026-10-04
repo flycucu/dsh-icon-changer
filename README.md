@@ -3,6 +3,7 @@
 # dsh-icon-changer
 
 [![check](https://github.com/flycucu/dsh-icon-changer/actions/workflows/check.yml/badge.svg)](https://github.com/flycucu/dsh-icon-changer/actions/workflows/check.yml)
+[![version](https://img.shields.io/github/v/tag/flycucu/dsh-icon-changer?label=version&sort=semver)](https://github.com/flycucu/dsh-icon-changer/releases)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [更新日志](CHANGELOG.md)
 
