@@ -22,12 +22,24 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Windows pauses the whole console while the user drags a text selection in it
-# (QuickEdit "mark" mode) - and this window is *made* to be looked at. That is not
+# Lock this console's input down completely.
+#
+# Why: Windows pauses the whole console while the user drags a text selection in it
+# (QuickEdit "mark" mode), and this window is *made* to be looked at. That is not
 # theoretical: one click in it froze a job mid-flight, the exe was never rewritten
 # and the queued request was lost (the console title even grew a "Select " prefix).
-# A WMI-created console starts with mode 0x01F7, i.e. QuickEdit on; clear the bit so
-# clicking the window is harmless.
+#
+# A WMI-created console starts with input mode 0x01F7. First the QuickEdit bit was
+# cleared (0x01B7), which makes clicking harmless; now the whole input mode is set to
+# 0 - ENABLE_PROCESSED_INPUT / ENABLE_LINE_INPUT / ENABLE_ECHO_INPUT / ENABLE_WINDOW_INPUT
+# / ENABLE_MOUSE_INPUT / ENABLE_QUICK_EDIT_MODE all off - so the console stops handing
+# input to this process at all:
+#   * mouse clicks and drag-selection do nothing (no mark mode, nothing to pause)
+#   * keystrokes are ignored, so stray typing cannot disturb the job
+#   * Ctrl+C is no longer turned into a signal (ENABLE_PROCESSED_INPUT is off), so an
+#     accidental Ctrl+C cannot abort a rewrite either
+# Output is unaffected: this only touches the input buffer. Nothing in this worker
+# ever reads from the console.
 try {
     Add-Type -Namespace DshConsoleMode -Name Api -MemberDefinition @'
 [DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr GetStdHandle(int nStdHandle);
@@ -37,9 +49,7 @@ try {
     $stdIn = [DshConsoleMode.Api]::GetStdHandle(-10)            # STD_INPUT_HANDLE
     $consoleMode = [uint32]0
     if ([DshConsoleMode.Api]::GetConsoleMode($stdIn, [ref]$consoleMode)) {
-        # ENABLE_EXTENDED_FLAGS (0x0080) has to be set for the QuickEdit bit to count
-        $noQuickEdit = [uint32]((($consoleMode -bor 0x0080) -band 0xFFFFFFBF))
-        [void][DshConsoleMode.Api]::SetConsoleMode($stdIn, $noQuickEdit)
+        [void][DshConsoleMode.Api]::SetConsoleMode($stdIn, [uint32]0)
     }
 } catch { }
 

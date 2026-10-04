@@ -3,6 +3,14 @@
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Changed
+
+- worker 控制台**输入模式整体清零**（实测 `0x01F7 → 0x0000`）：不只是关掉 QuickEdit，鼠标点击/拖选、键盘、
+  `Ctrl+C`（`ENABLE_PROCESSED_INPUT`）全部不再交给进程，误点误按都不会打断改写；
+  只影响输入缓冲，控制台输出与状态写入不受影响。
+
 ## [0.3.0] - 2026-10-05
 
 首个正式版本：把"换图标"这条路从"看起来在跑"变成"每一条路径都验证过"。
