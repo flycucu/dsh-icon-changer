@@ -1,0 +1,58 @@
+{
+  "name": "dsh-icon-changer",
+  "version": "0.3.0",
+  "description": "DeepSeek Harness 桌面端应用图标更换器：把官方 exe 图标换成任意 .ico，支持上传自定义图标与一键回退官方默认。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "bin",
+    "tools",
+    "assets",
+    "cordis.patch.yml",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "icon",
+    "ico",
+    "rcedit",
+    "windows",
+    "desktop"
+  ],
+  "author": "cucu",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flycucu/dsh-icon-changer.git"
+  },
+  "homepage": "https://github.com/flycucu/dsh-icon-changer#readme",
+  "bugs": {
+    "url": "https://github.com/flycucu/dsh-icon-changer/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node --check lib/index.js && node --check lib/client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "slots"
+      ]
+    }
+  }
+}

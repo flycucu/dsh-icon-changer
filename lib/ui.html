@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>应用图标更换器 · DeepSeek Harness</title>
+<style>
+  :root {
+    --bg: #f6f7fb; --card: #fff; --line: #e2e6ef; --fg: #1d2436; --dim: #66708a;
+    --accent: #3d5afe; --ok: #17864a; --warn: #b06a00; --err: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14161d; --card:#1c1f28; --line:#2b3040; --fg:#e8eaf2; --dim:#98a0b8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:28px 20px 60px; background:var(--bg); color:var(--fg);
+         font: 14px/1.6 "Segoe UI", system-ui, -apple-system, "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--dim); margin-bottom: 22px; font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+          padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; margin: 0 0 12px; letter-spacing: .3px; color: var(--dim);
+             text-transform: uppercase; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+  .kv { display:grid; grid-template-columns: 108px 1fr; gap:6px 14px; font-size:13px; }
+  .kv dt { color: var(--dim); }
+  .kv dd { margin:0; word-break: break-all; font-family: ui-monospace, Consolas, monospace; }
+  .icons { display:grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap:12px; }
+  .icon { border:2px solid var(--line); border-radius:12px; padding:8px; text-align:center;
+          cursor:pointer; background:transparent; transition:.15s; }
+  .icon:hover { border-color: var(--accent); }
+  .icon.sel { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(61,90,254,.16); }
+  .icon img { width:64px; height:64px; object-fit:contain; image-rendering:auto; }
+  .icon .nm { font-size:11px; color:var(--dim); margin-top:6px; word-break:break-all; }
+  .icon .tag { font-size:10px; color:var(--accent); }
+  button { font:inherit; padding:8px 16px; border-radius:9px; border:1px solid var(--line);
+           background:var(--card); color:var(--fg); cursor:pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .msg { margin-top:12px; padding:10px 12px; border-radius:9px; font-size:13px; display:none; }
+  .msg.show { display:block; }
+  .msg.ok { background: rgba(23,134,74,.12); color: var(--ok); }
+  .msg.err { background: rgba(192,57,43,.12); color: var(--err); }
+  .msg.info { background: rgba(61,90,254,.10); color: var(--accent); }
+  label.chk { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--dim); }
+  pre.log { background: var(--bg); border:1px solid var(--line); border-radius:9px; padding:12px;
+            max-height:220px; overflow:auto; font-size:12px; margin:0; white-space:pre-wrap; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:20px; font-size:11px;
+          background: rgba(61,90,254,.12); color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>应用图标更换器</h1>
+  <div class="sub">改写 DeepSeek Harness 桌面端 <code>.exe</code> 内嵌的图标资源。因为 Windows 会锁住正在运行的程序，
+    更换会在应用退出后由一个独立进程自动完成。</div>
+
+  <div class="card">
+    <h2>当前状态</h2>
+    <dl class="kv" id="statusKv"></dl>
+    <div id="statusMsg" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>选择图标</h2>
+    <div class="icons" id="iconGrid"></div>
+    <div class="row" style="margin-top:16px">
+      <input type="file" id="file" accept=".ico,image/x-icon" style="display:none">
+      <button id="btnUpload">上传 .ico 文件</button>
+      <span id="uploadName" class="sub" style="margin:0"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>操作</h2>
+    <label class="chk"><input type="checkbox" id="restart" checked>
+      完成后自动重新启动 DeepSeek Harness</label>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="btnApply">应用选中的图标</button>
+      <button id="btnRestore">回退成官方默认图标</button>
+      <button id="btnRefresh">刷新状态</button>
+    </div>
+    <div id="opMsg" class="msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>后台日志</h2>
+    <pre class="log" id="log">（暂无）</pre>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null;
+let selected = null;
+
+function showMsg(el, text, kind) {
+  el.textContent = text;
+  el.className = 'msg show ' + (kind || 'info');
+}
+function hideMsg(el) { el.className = 'msg'; }
+
+function fmtTime(ms) {
+  if (!ms) return '—';
+  try { return new Date(ms).toLocaleString(); } catch { return String(ms); }
+}
+function fmtSize(n) {
+  if (n == null) return '—';
+  return n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB';
+}
+
+async function api(path, opts) {
+  const res = await fetch('/api/icon-changer' + path, opts);
+  const text = await res.text();
+  try { return JSON.parse(text); } catch { return { ok: false, error: text.slice(0, 300) }; }
+}
+
+function renderStatus() {
+  const kv = $('statusKv');
+  kv.innerHTML = '';
+  const add = (k, v, cls) => {
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v;
+    if (cls) dd.className = cls;
+    kv.append(dt, dd);
+  };
+  if (!state || !state.ok) { add('状态', '读取失败'); return; }
+  add('桌面端', state.isDesktopApp ? '是' : '否（非桌面端运行，无法改写）');
+  add('exe', state.exe ? state.exe.path : '—');
+  add('exe 体积', state.exe ? fmtSize(state.exe.size) : '—');
+  add('原始备份', state.backup ? fmtSize(state.backup.size) + ' · ' + fmtTime(state.backup.mtime) : '尚未创建');
+  // 用 appliedId 翻译成人看的名字：op==='apply' 时也可能是内置的原版图标，
+  // 直接写"自定义图标"会把官方原版说错。
+  const appliedIcon = state.appliedId
+    ? ((state.icons || []).find((i) => i.id === state.appliedId) || null)
+    : null;
+  const appliedName = appliedIcon
+    ? (appliedIcon.label || appliedIcon.name)
+    : (state.applied && state.applied.op === 'restore' ? '官方默认' : '自定义图标');
+  add('已应用', state.applied ? appliedName + ' · ' + fmtTime(Date.parse(state.applied.at)) : '未通过本插件更换');
+  add('待处理', state.pending ? state.pending.op + '（等待应用退出）' : '无');
+  if (state.lastResult) {
+    add('上次结果', (state.lastResult.ok ? '成功' : '失败') + '：' + state.lastResult.message);
+  }
+}
+function renderIcons() {
+  const grid = $('iconGrid');
+  grid.innerHTML = '';
+  const icons = (state && state.icons) || [];
+  if (!icons.length) {
+    grid.innerHTML = '<div class="sub" style="margin:0">还没有可用图标，先上传一个 .ico</div>';
+    return;
+  }
+  // 和设置页卡片保持一致：默认停在"应用当前穿着的图标"上，并标出它。
+  if (!selected) selected = state.appliedId || (icons[0] && icons[0].id) || null;
+  for (const ic of icons) {
+    const btn = document.createElement('button');
+    btn.className = 'icon' + (selected === ic.id ? ' sel' : '');
+    btn.type = 'button';
+    const img = document.createElement('img');
+    img.src = '/api/icon-changer/preview/' + encodeURIComponent(ic.id);
+    img.alt = ic.label || ic.name;
+    const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = ic.label || ic.name;
+    const tag = document.createElement('div'); tag.className = 'tag';
+    tag.textContent = (ic.builtin ? '内置' : '已上传')
+      + (state.appliedId === ic.id ? ' · 当前使用' : '');
+    btn.append(img, nm, tag);
+    btn.onclick = () => { selected = ic.id; renderIcons(); };
+    grid.appendChild(btn);
+  }
+}
+
+async function refresh() {
+  state = await api('/status');
+  renderStatus();
+  renderIcons();
+  const r = await api('/log');
+  if (r && r.ok) $('log').textContent = r.log && r.log.trim() ? r.log : '（暂无）';
+}
+
+$('btnRefresh').onclick = () => { hideMsg($('opMsg')); refresh(); };
+
+$('btnUpload').onclick = () => $('file').click();
+$('file').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  $('uploadName').textContent = f.name + ' · ' + fmtSize(f.size);
+  if (!/\.ico$/i.test(f.name)) {
+    showMsg($('opMsg'), '请选择 .ico 文件（其他格式需要先转换）。', 'err');
+    return;
+  }
+  const b64 = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1]);
+    fr.onerror = reject;
+    fr.readAsDataURL(f);
+  });
+  showMsg($('opMsg'), '正在上传…', 'info');
+  const r = await api('/upload', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name: f.name, b64 }),
+  });
+  if (r.ok) {
+    selected = r.id;
+    showMsg($('opMsg'), '上传成功：' + r.name, 'ok');
+    await refresh();
+  } else {
+    showMsg($('opMsg'), '上传失败：' + (r.error || '未知错误')
+      + (r.error === 'not-an-ico' ? '（这个文件不是有效的 .ico）' : ''), 'err');
+  }
+};
+
+$('btnApply').onclick = async () => {
+  if (!selected) { showMsg($('opMsg'), '先在上面选一个图标。', 'err'); return; }
+  const restart = $('restart').checked;
+  showMsg($('opMsg'), '正在排队…', 'info');
+  const r = await api('/apply', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ icon: selected, restart }),
+  });
+  if (r.ok) {
+    showMsg($('opMsg'), r.message || '已排队', 'ok');
+    refresh();
+  } else {
+    showMsg($('opMsg'), '失败：' + (r.message || r.error || '未知错误'), 'err');
+  }
+};
+
+$('btnRestore').onclick = async () => {
+  if (!confirm('回退成官方默认图标？会用备份覆盖当前 exe。')) return;
+  const restart = $('restart').checked;
+  showMsg($('opMsg'), '正在排队…', 'info');
+  const r = await api('/restore', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ restart }),
+  });
+  if (r.ok) { showMsg($('opMsg'), r.message || '已排队', 'ok'); refresh(); }
+  else { showMsg($('opMsg'), '失败：' + (r.message || r.error || '未知错误'), 'err'); }
+};
+
+refresh();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

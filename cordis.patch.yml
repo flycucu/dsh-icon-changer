@@ -1,0 +1,7 @@
+# dsh-icon-changer bundle patch: one host row.
+# The host Loader activates lib/index.js, which is where the whole plugin lives
+# (HTTP routes served by ctx.webServer + a detached PowerShell helper that does
+# the actual PE resource rewrite after the app has exited).
+- insert:
+    - id: icon-changer
+      name: dsh-icon-changer

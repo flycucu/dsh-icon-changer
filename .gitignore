@@ -1,0 +1,32 @@
+# dependencies / build output
+node_modules/
+dist/
+
+# editor + OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# local backups made while editing (never part of a release)
+*.bak
+*.bak-*
+*.orig
+
+# runtime data, in case someone points DSH_HOME at the checkout root.
+# The plugin normally writes these to $DSH_HOME/icon-changer/, i.e. outside the repo.
+icon-changer/
+state.json
+state.json.bak*
+pending-job.json
+pending-job.cmdline
+spawn-result.json
+refresh-shell.cmdline
+refresh-shell.spawn.json
+helper.log
+current.ico
+icons/
+backup/
+
+# Windows icon caches / captured diagnostics
+*.stackdump
